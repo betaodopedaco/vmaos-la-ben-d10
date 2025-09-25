@@ -1,147 +1,70 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gorq IA - Motivação Instantânea</title>
-<style>
-  /* Reset básico */
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    font-family: Arial, sans-serif;
-    background: linear-gradient(135deg, #0a0a0a, #1c1c1c);
-    color: #fff;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    min-height: 100vh;
-    padding: 50px 20px;
-  }
-
-  h1 {
-    font-size: 3em;
-    color: #ffd700;
-    margin-bottom: 20px;
-    text-shadow: 2px 2px #000;
-    text-align: center;
-  }
-
-  .container {
-    width: 100%;
-    max-width: 700px;
-    background: #1a1a1a;
-    padding: 30px;
-    border-radius: 20px;
-    box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-
-  input[type="text"] {
-    width: 100%;
-    padding: 15px 20px;
-    border-radius: 12px;
-    border: none;
-    font-size: 1.1em;
-    outline: none;
-    background: #0f0f0f;
-    color: #fff;
-    border: 2px solid #444;
-    transition: border 0.3s, box-shadow 0.3s;
-  }
-
-  input[type="text"]:focus {
-    border: 2px solid #ffd700;
-    box-shadow: 0 0 10px #ffd70050;
-  }
-
-  button {
-    padding: 15px 20px;
-    font-size: 1.2em;
-    font-weight: bold;
-    border-radius: 12px;
-    border: none;
-    cursor: pointer;
-    background: linear-gradient(90deg, #ffd700, #ff4500);
-    color: #000;
-    transition: transform 0.2s, box-shadow 0.2s;
-  }
-
-  button:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 15px #ffd70080;
-  }
-
-  #resultado {
-    padding: 20px;
-    border-radius: 12px;
-    background: #0f0f0f;
-    min-height: 60px;
-    font-size: 1.2em;
-    color: #ffd700;
-    line-height: 1.5em;
-    white-space: pre-wrap;
-    box-shadow: inset 0 0 10px #ffd70010;
-  }
-
-  #loading {
-    display: none;
-    color: #ff4500;
-    font-weight: bold;
-    text-align: center;
-    margin-top: 10px;
-  }
-
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IA Motivacional</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #1c1c1c;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    h1 { color: #ffd700; }
+    input, button {
+      padding: 10px;
+      margin: 5px;
+      border-radius: 5px;
+      border: none;
+      font-size: 16px;
+    }
+    input { width: 300px; }
+    button { background: #ff0000; color: #fff; cursor: pointer; }
+    .card {
+      background: #222;
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 20px;
+      min-width: 350px;
+      text-align: center;
+      box-shadow: 0 0 15px #ffd700;
+    }
+  </style>
 </head>
 <body>
-
-<h1>Gorq IA Motivacional</h1>
-
-<div class="container">
-  <input id="prompt" type="text" placeholder="Digite seu prompt motivacional..." />
+  <h1>Gerador de Frases Motivacionais</h1>
+  <input type="text" id="prompt" placeholder="Digite seu prompt..." />
   <button onclick="enviarPrompt()">Gerar Resposta</button>
-  <div id="loading">Gerando resposta...</div>
-  <div id="resultado"></div>
-</div>
 
-<script>
-async function enviarPrompt() {
-  const promptInput = document.getElementById('prompt');
-  const resultadoDiv = document.getElementById('resultado');
-  const loadingDiv = document.getElementById('loading');
-  const prompt = promptInput.value.trim();
+  <div id="resposta" class="card">A resposta aparecerá aqui.</div>
 
-  if (!prompt) {
-    alert("Digite algum prompt!");
-    return;
-  }
+  <script>
+    async function enviarPrompt() {
+      const prompt = document.getElementById('prompt').value;
+      if (!prompt) return alert('Digite algum prompt!');
 
-  resultadoDiv.textContent = "";
-  loadingDiv.style.display = "block";
+      const respostaDiv = document.getElementById('resposta');
+      respostaDiv.textContent = 'Gerando...';
 
-  try {
-    const res = await fetch("/api/gorq", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt })
-    });
+      try {
+        const resp = await fetch('/api/gorq', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt })
+        });
 
-    const data = await res.json();
-    loadingDiv.style.display = "none";
-
-    // Mostra só a resposta do assistente
-    resultadoDiv.textContent = data.content || "Sem resposta do modelo.";
-  } catch (err) {
-    loadingDiv.style.display = "none";
-    resultadoDiv.textContent = "Erro ao gerar resposta. Veja o console.";
-    console.error(err);
-  }
-}
-</script>
-
+        const data = await resp.json();
+        respostaDiv.textContent = data.message || 'Sem resposta do modelo.';
+      } catch (err) {
+        console.error(err);
+        respostaDiv.textContent = 'Erro ao chamar a API.';
+      }
+    }
+  </script>
 </body>
 </html>
