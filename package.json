@@ -1,0 +1,11 @@
+{
+  "name": "gorq-api",
+  "version": "1.0.0",
+  "main": "api/gorq.js",
+  "scripts": {
+    "start": "node api/gorq.js"
+  },
+  "dependencies": {
+    "node-fetch": "2.6.7"
+  }
+}
