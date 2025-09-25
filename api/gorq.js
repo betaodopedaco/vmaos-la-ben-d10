@@ -1,7 +1,8 @@
-// api/gorq.js
+// api/gorq.js (CommonJS) — usa GROQ_MODEL configurável
 const fetch = require("node-fetch");
 
 module.exports = async (req, res) => {
+  // CORS simples para testes
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -12,35 +13,45 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const GROQ_API_KEY = process.env.GROQ_API_KEY;
-    console.log("GROQ_API_KEY:", GROQ_API_KEY ? "OK" : "NÃO DEFINIDA");
+    const API_KEY = process.env.GROQ_API_KEY;
+    const MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-20b"; // fallback
 
-    if (!GROQ_API_KEY) {
+    console.log("GROQ_API_KEY presente:", !!API_KEY);
+    console.log("Usando MODEL:", MODEL);
+
+    if (!API_KEY) {
       res.status(500).json({ error: "GROQ_API_KEY não configurada." });
       return;
     }
 
-    const prompt = (req.body && req.body.prompt) || "Olá, Gorq!";
-    console.log("Prompt recebido:", prompt);
+    // pega prompt (suporta quando Vercel já parseou JSON)
+    let prompt = "Olá, Gorq!";
+    if (req.body && typeof req.body === "object") prompt = req.body.prompt || prompt;
+    else if (req.body && typeof req.body === "string") {
+      try { const jb = JSON.parse(req.body); prompt = jb.prompt || prompt; } catch(e){}
+    }
 
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    console.log("Prompt:", prompt);
+
+    const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${GROQ_API_KEY}`,
+        "Authorization": `Bearer ${API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-3.5-turbo",
+        model: MODEL,
         messages: [{ role: "user", content: prompt }],
       }),
     });
 
-    const data = await response.json();
-    console.log("Resposta da API Gorq:", data);
+    const data = await r.json();
+    console.log("Resposta do Gorq (preview):", Array.isArray(data?.choices) ? data.choices[0] : data);
 
+    // repassa a resposta inteira para o cliente
     res.status(200).json(data);
   } catch (err) {
     console.error("Erro interno na API Gorq:", err);
-    res.status(500).json({ error: "Erro interno na API Gorq", details: err.message });
+    res.status(500).json({ error: "Erro interno na API Gorq", details: err.message || err });
   }
 };
