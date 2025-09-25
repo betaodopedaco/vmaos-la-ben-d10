@@ -32,11 +32,11 @@ module.exports = async (req, res) => {
         "Authorization": `Bearer ${GROQ_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: "gpt-oss",
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
+     body: JSON.stringify({
+  model: "gpt-3.5-turbo",
+  messages: [{ role: "user", content: prompt }],
+}),
+
 
     const data = await response.json();
     res.status(200).json(data);
