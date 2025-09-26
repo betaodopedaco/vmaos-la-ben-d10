@@ -1,70 +1,92 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>IA Motivacional</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gorq IA - Teste</title>
+  <link rel="icon" href="/favicon.ico" />
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #1c1c1c;
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-    }
-    h1 { color: #ffd700; }
-    input, button {
-      padding: 10px;
-      margin: 5px;
-      border-radius: 5px;
-      border: none;
-      font-size: 16px;
-    }
-    input { width: 300px; }
-    button { background: #ff0000; color: #fff; cursor: pointer; }
-    .card {
-      background: #222;
-      border-radius: 10px;
-      padding: 20px;
-      margin-top: 20px;
-      min-width: 350px;
-      text-align: center;
-      box-shadow: 0 0 15px #ffd700;
-    }
+    body { font-family: Arial, sans-serif; background:#0b0b0b; color:#eee; display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; padding:20px; }
+    .card { width:100%; max-width:760px; background:#111; padding:28px; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,.6); }
+    h1 { color:#ffd700; margin-bottom:12px; text-align:center; }
+    textarea { width:100%; min-height:90px; padding:14px; border-radius:10px; border:1px solid #333; background:#0f0f0f; color:#fff; resize:vertical; }
+    .controls { display:flex; gap:12px; margin-top:12px; }
+    button { padding:12px 18px; border-radius:10px; border:none; cursor:pointer; font-weight:700; background:linear-gradient(90deg,#ffd700,#ff4500); color:#000; }
+    #loading { display:none; margin-top:12px; color:#ffb86b; }
+    #resultado { margin-top:16px; background:#060606; padding:14px; border-radius:10px; min-height:80px; color:#bfe3ff; white-space:pre-wrap; }
+    .raw { margin-top:8px; font-size:12px; color:#aaa; background:#020202; padding:10px; border-radius:8px; overflow:auto; max-height:200px; }
   </style>
 </head>
 <body>
-  <h1>Gerador de Frases Motivacionais</h1>
-  <input type="text" id="prompt" placeholder="Digite seu prompt..." />
-  <button onclick="enviarPrompt()">Gerar Resposta</button>
+  <div class="card">
+    <h1>Gorq IA — Teste</h1>
 
-  <div id="resposta" class="card">A resposta aparecerá aqui.</div>
+    <textarea id="prompt" placeholder="Escreva seu prompt...">Escreva uma frase motivacional curta e poderosa.</textarea>
 
-  <script>
-    async function enviarPrompt() {
-      const prompt = document.getElementById('prompt').value;
-      if (!prompt) return alert('Digite algum prompt!');
+    <div class="controls">
+      <button id="btn" onclick="enviarPrompt()">Gerar Resposta</button>
+      <button onclick="limpar()">Limpar</button>
+    </div>
 
-      const respostaDiv = document.getElementById('resposta');
-      respostaDiv.textContent = 'Gerando...';
+    <div id="loading">Gerando resposta...</div>
 
-      try {
-        const resp = await fetch('/api/gorq', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt })
-        });
+    <div id="resultado">A resposta aparecerá aqui.</div>
+    <div id="debug" class="raw" style="display:none"></div>
+  </div>
 
-        const data = await resp.json();
-        respostaDiv.textContent = data.message || 'Sem resposta do modelo.';
-      } catch (err) {
-        console.error(err);
-        respostaDiv.textContent = 'Erro ao chamar a API.';
+<script>
+async function enviarPrompt(){
+  const prompt = document.getElementById('prompt').value.trim();
+  const resultado = document.getElementById('resultado');
+  const loading = document.getElementById('loading');
+  const debug = document.getElementById('debug');
+  resultado.textContent = '';
+  debug.style.display = 'none';
+  if(!prompt){ alert('Digite um prompt'); return; }
+
+  loading.style.display = 'block';
+  try {
+    const res = await fetch('/api/gorq', {
+      method:'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ prompt })
+    });
+
+    const data = await res.json();
+    loading.style.display = 'none';
+
+    // data should be { content: string|null, raw: ... }
+    if(res.ok){
+      if(data.content){
+        resultado.textContent = data.content;
+      } else if(data.raw){
+        resultado.textContent = 'Sem conteúdo extraído — veja raw abaixo (modo debug).';
+        debug.style.display = 'block';
+        debug.textContent = JSON.stringify(data.raw, null, 2);
+      } else {
+        resultado.textContent = 'Sem resposta do modelo.';
+        debug.style.display = 'block';
+        debug.textContent = JSON.stringify(data, null, 2);
       }
+    } else {
+      resultado.textContent = 'Erro: ' + (data.error || res.statusText);
+      debug.style.display = 'block';
+      debug.textContent = JSON.stringify(data, null, 2);
     }
-  </script>
+  } catch(e){
+    loading.style.display = 'none';
+    resultado.textContent = 'Erro de rede: ' + e.message;
+    debug.style.display = 'block';
+    debug.textContent = e.stack || String(e);
+    console.error(e);
+  }
+}
+
+function limpar(){
+  document.getElementById('prompt').value = '';
+  document.getElementById('resultado').textContent = 'A resposta aparecerá aqui.';
+  document.getElementById('debug').style.display = 'none';
+}
+</script>
 </body>
 </html>
