@@ -3,90 +3,261 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Gorq IA - Teste</title>
-  <link rel="icon" href="/favicon.ico" />
+  <title>Gorq IA — Interface</title>
   <style>
-    body { font-family: Arial, sans-serif; background:#0b0b0b; color:#eee; display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; padding:20px; }
-    .card { width:100%; max-width:760px; background:#111; padding:28px; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,.6); }
-    h1 { color:#ffd700; margin-bottom:12px; text-align:center; }
-    textarea { width:100%; min-height:90px; padding:14px; border-radius:10px; border:1px solid #333; background:#0f0f0f; color:#fff; resize:vertical; }
-    .controls { display:flex; gap:12px; margin-top:12px; }
-    button { padding:12px 18px; border-radius:10px; border:none; cursor:pointer; font-weight:700; background:linear-gradient(90deg,#ffd700,#ff4500); color:#000; }
-    #loading { display:none; margin-top:12px; color:#ffb86b; }
-    #resultado { margin-top:16px; background:#060606; padding:14px; border-radius:10px; min-height:80px; color:#bfe3ff; white-space:pre-wrap; }
-    .raw { margin-top:8px; font-size:12px; color:#aaa; background:#020202; padding:10px; border-radius:8px; overflow:auto; max-height:200px; }
+    :root{
+      --bg:#080808;
+      --card:#121212;
+      --gold:#ffd700;
+      --red:#c62828;
+      --muted:#9aa4ad;
+      --accent:#ffb86b;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:linear-gradient(180deg,#050505 0%, #0b0b0b 100%);
+      color:#eee;
+      font-family: Inter, Arial, Helvetica, sans-serif;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:28px;
+    }
+
+    .wrap{
+      width:100%;
+      max-width:980px;
+      background:linear-gradient(180deg, rgba(255,215,0,0.02), rgba(255,69,0,0.02));
+      padding:28px;
+      border-radius:16px;
+      box-shadow:0 20px 60px rgba(0,0,0,.7);
+    }
+
+    header{
+      display:flex;
+      gap:16px;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:18px;
+    }
+    .brand{
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+    .logo{
+      width:56px;height:56px;border-radius:10px;
+      display:flex;align-items:center;justify-content:center;
+      background:linear-gradient(135deg,var(--gold),var(--red));
+      color:#0a0a0a;font-weight:900;font-size:18px;box-shadow:0 6px 20px rgba(0,0,0,.6)
+    }
+    h1{font-size:20px;margin:0}
+    p.subtitle{margin:0;color:var(--muted);font-size:13px}
+
+    .controls{
+      display:flex;gap:12px;align-items:center;
+    }
+
+    .card{
+      background:var(--card);
+      border-radius:12px;
+      padding:18px;
+      margin-top:12px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.02);
+    }
+
+    textarea#prompt{
+      width:100%;min-height:110px;padding:14px;border-radius:10px;border:1px solid #222;background:#0a0a0a;color:#fff;resize:vertical;font-size:15px;
+    }
+
+    .row{display:flex;gap:12px;margin-top:12px;align-items:center}
+    button{cursor:pointer;border:none;padding:10px 14px;border-radius:10px;font-weight:700}
+    .btn-primary{background:linear-gradient(90deg,var(--gold),var(--red));color:#060606}
+    .btn-ghost{background:transparent;border:1px solid #222;color:var(--muted)}
+
+    #loading{display:none;color:var(--accent);font-weight:700;margin-left:8px}
+
+    #responseHeader{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    #aiName{font-weight:900;color:var(--gold);font-size:18px}
+    #result{margin-top:12px;padding:14px;border-radius:10px;background:#060606;min-height:90px;color:#ffd;white-space:pre-wrap;font-size:16px;line-height:1.45}
+    .meta{font-size:12px;color:var(--muted);margin-top:8px}
+
+    .history{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+    .hist-item{background:#080808;border:1px solid #1a1a1a;padding:10px;border-radius:8px;color:var(--muted);font-size:13px;display:flex;justify-content:space-between;align-items:center}
+    .small{font-size:12px;color:var(--muted)}
+
+    .debug{margin-top:12px;margin-bottom:8px;display:none}
+    pre.debugbox{max-height:220px;overflow:auto;background:#020202;padding:10px;border-radius:8px;color:#aaa;font-size:13px}
+
+    @media (max-width:640px){
+      header{flex-direction:column;align-items:flex-start;gap:8px}
+      .controls{width:100%;justify-content:space-between}
+    }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Gorq IA — Teste</h1>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo">MT</div>
+        <div>
+          <h1>Gorq IA — Interface</h1>
+          <p class="subtitle">Conectada a <strong>/api/gorq</strong>. Persona fixa definida pelo backend.</p>
+        </div>
+      </div>
 
-    <textarea id="prompt" placeholder="Escreva seu prompt...">Escreva uma frase motivacional curta e poderosa.</textarea>
+      <div class="controls">
+        <button class="btn-ghost" id="btnClearHistory">Limpar histórico</button>
+        <button class="btn-primary" id="btnCopyLast" title="Copiar última resposta">Copiar</button>
+      </div>
+    </header>
 
-    <div class="controls">
-      <button id="btn" onclick="enviarPrompt()">Gerar Resposta</button>
-      <button onclick="limpar()">Limpar</button>
+    <div class="card">
+      <label for="prompt"><small class="small">Prompt</small></label>
+      <textarea id="prompt">Escreva uma frase motivacional curta e poderosa.</textarea>
+
+      <div class="row">
+        <button class="btn-primary" id="sendBtn">Gerar Resposta</button>
+        <button class="btn-ghost" id="btnPreview">Ver raw</button>
+        <div id="loading">Gerando...</div>
+      </div>
+
+      <div id="responseHeader" style="margin-top:14px">
+        <div>
+          <div id="aiName">—</div>
+          <div class="meta" id="metaModel"></div>
+        </div>
+      </div>
+
+      <div id="result">A resposta aparecerá aqui.</div>
+
+      <div class="debug" id="debugWrap">
+        <div class="meta">Raw response (debug):</div>
+        <pre class="debugbox" id="rawBox"></pre>
+      </div>
+
+      <div class="history" id="historyList" aria-live="polite"></div>
     </div>
-
-    <div id="loading">Gerando resposta...</div>
-
-    <div id="resultado">A resposta aparecerá aqui.</div>
-    <div id="debug" class="raw" style="display:none"></div>
   </div>
 
 <script>
-async function enviarPrompt(){
-  const prompt = document.getElementById('prompt').value.trim();
-  const resultado = document.getElementById('resultado');
-  const loading = document.getElementById('loading');
-  const debug = document.getElementById('debug');
-  resultado.textContent = '';
-  debug.style.display = 'none';
-  if(!prompt){ alert('Digite um prompt'); return; }
+(() => {
+  const sendBtn = document.getElementById('sendBtn');
+  const promptEl = document.getElementById('prompt');
+  const resultEl = document.getElementById('result');
+  const aiNameEl = document.getElementById('aiName');
+  const loadingEl = document.getElementById('loading');
+  const rawBox = document.getElementById('rawBox');
+  const debugWrap = document.getElementById('debugWrap');
+  const btnPreview = document.getElementById('btnPreview');
+  const btnCopyLast = document.getElementById('btnCopyLast');
+  const btnClearHistory = document.getElementById('btnClearHistory');
+  const metaModel = document.getElementById('metaModel');
+  const historyList = document.getElementById('historyList');
 
-  loading.style.display = 'block';
-  try {
-    const res = await fetch('/api/gorq', {
-      method:'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ prompt })
+  const STORAGE_KEY = 'gorq_history_v1';
+  function loadHistory(){ try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e){ return []; } }
+  function saveHistory(h){ localStorage.setItem(STORAGE_KEY, JSON.stringify(h)); renderHistory(); }
+  function renderHistory(){
+    const h = loadHistory();
+    historyList.innerHTML = '';
+    h.slice().reverse().forEach(item=>{
+      const div = document.createElement('div'); div.className='hist-item';
+      const left = document.createElement('div'); left.innerHTML = `<div style="font-weight:700;color:var(--gold)">${item.name}</div><div style="color:var(--muted)">${item.prompt}</div>`;
+      const right = document.createElement('div'); right.innerHTML = `<div style="text-align:right">${(new Date(item.time)).toLocaleString()}</div>`;
+      div.appendChild(left); div.appendChild(right);
+      historyList.appendChild(div);
     });
-
-    const data = await res.json();
-    loading.style.display = 'none';
-
-    // data should be { content: string|null, raw: ... }
-    if(res.ok){
-      if(data.content){
-        resultado.textContent = data.content;
-      } else if(data.raw){
-        resultado.textContent = 'Sem conteúdo extraído — veja raw abaixo (modo debug).';
-        debug.style.display = 'block';
-        debug.textContent = JSON.stringify(data.raw, null, 2);
-      } else {
-        resultado.textContent = 'Sem resposta do modelo.';
-        debug.style.display = 'block';
-        debug.textContent = JSON.stringify(data, null, 2);
-      }
-    } else {
-      resultado.textContent = 'Erro: ' + (data.error || res.statusText);
-      debug.style.display = 'block';
-      debug.textContent = JSON.stringify(data, null, 2);
-    }
-  } catch(e){
-    loading.style.display = 'none';
-    resultado.textContent = 'Erro de rede: ' + e.message;
-    debug.style.display = 'block';
-    debug.textContent = e.stack || String(e);
-    console.error(e);
   }
-}
 
-function limpar(){
-  document.getElementById('prompt').value = '';
-  document.getElementById('resultado').textContent = 'A resposta aparecerá aqui.';
-  document.getElementById('debug').style.display = 'none';
-}
+  // copy last result
+  btnCopyLast.addEventListener('click', ()=> {
+    const text = resultEl.textContent || '';
+    if(!text) return alert('Nada para copiar');
+    navigator.clipboard.writeText(text).then(()=> alert('Copiado!'));
+  });
+
+  // clear history
+  btnClearHistory.addEventListener('click', ()=> {
+    if(!confirm('Limpar histórico local?')) return;
+    localStorage.removeItem(STORAGE_KEY); renderHistory();
+  });
+
+  // toggle raw preview
+  btnPreview.addEventListener('click', ()=> {
+    debugWrap.style.display = debugWrap.style.display === 'block' ? 'none' : 'block';
+  });
+
+  // initial render
+  renderHistory();
+
+  async function callApi(prompt){
+    // UI lock
+    sendBtn.disabled = true; loadingEl.style.display = 'inline-block';
+    try {
+      const res = await fetch('/api/gorq', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({ prompt })
+      });
+
+      const data = await res.json();
+      loadingEl.style.display = 'none'; sendBtn.disabled = false;
+
+      if(!res.ok){
+        resultEl.textContent = 'Erro: ' + (data.error || res.statusText);
+        rawBox.textContent = JSON.stringify(data, null, 2);
+        debugWrap.style.display = 'block';
+        return;
+      }
+
+      // expected shape: { name, content, raw }
+      const name = data.name || 'IA';
+      const content = data.content || null;
+      const raw = data.raw || data;
+
+      aiNameEl.textContent = name;
+      metaModel.textContent = raw?.model ? 'Modelo: ' + raw.model : '';
+
+      if(content){
+        resultEl.textContent = content;
+      } else {
+        // fallback: show user-friendly message and raw
+        resultEl.textContent = 'Sem conteúdo extraído — abra o raw para inspecionar.';
+      }
+
+      rawBox.textContent = JSON.stringify(raw, null, 2);
+      debugWrap.style.display = 'none'; // hidden by default
+
+      // store history
+      const hist = loadHistory();
+      hist.push({ time: Date.now(), name, prompt, content: content || null });
+      // keep last 80
+      if(hist.length > 80) hist.splice(0, hist.length - 80);
+      saveHistory(hist);
+
+    } catch (err) {
+      loadingEl.style.display = 'none'; sendBtn.disabled = false;
+      resultEl.textContent = 'Erro de rede: ' + err.message;
+      rawBox.textContent = (err && err.stack) ? err.stack : String(err);
+      debugWrap.style.display = 'block';
+    }
+  }
+
+  sendBtn.addEventListener('click', ()=>{
+    const text = promptEl.value.trim();
+    if(!text) return alert('Digite um prompt!');
+    callApi(text);
+  });
+
+  // Allow Ctrl+Enter to send
+  promptEl.addEventListener('keydown', (e)=>{
+    if(e.ctrlKey && e.key === 'Enter') sendBtn.click();
+  });
+
+})();
 </script>
 </body>
 </html>
