@@ -1,263 +1,574 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Gorq IA — Interface</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Assistant</title>
   <style>
-    :root{
-      --bg:#080808;
-      --card:#121212;
-      --gold:#ffd700;
-      --red:#c62828;
-      --muted:#9aa4ad;
-      --accent:#ffb86b;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      background:linear-gradient(180deg,#050505 0%, #0b0b0b 100%);
-      color:#eee;
-      font-family: Inter, Arial, Helvetica, sans-serif;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:28px;
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
 
-    .wrap{
-      width:100%;
-      max-width:980px;
-      background:linear-gradient(180deg, rgba(255,215,0,0.02), rgba(255,69,0,0.02));
-      padding:28px;
-      border-radius:16px;
-      box-shadow:0 20px 60px rgba(0,0,0,.7);
+    :root {
+      --bg: #0a0a0f;
+      --card: #15151f;
+      --primary: #00d4ff;
+      --primary-dark: #0077ff;
+      --secondary: #7928ca;
+      --accent: #00ff88;
+      --muted: #8a8a9e;
+      --text: #f0f0ff;
+      --border: rgba(255,255,255,0.1);
+      --error: #ff3366;
+      --success: #00ff9d;
     }
 
-    header{
-      display:flex;
-      gap:16px;
-      align-items:center;
-      justify-content:space-between;
-      margin-bottom:18px;
-    }
-    .brand{
-      display:flex;
-      gap:12px;
-      align-items:center;
-    }
-    .logo{
-      width:56px;height:56px;border-radius:10px;
-      display:flex;align-items:center;justify-content:center;
-      background:linear-gradient(135deg,var(--gold),var(--red));
-      color:#0a0a0a;font-weight:900;font-size:18px;box-shadow:0 6px 20px rgba(0,0,0,.6)
-    }
-    h1{font-size:20px;margin:0}
-    p.subtitle{margin:0;color:var(--muted);font-size:13px}
-
-    .controls{
-      display:flex;gap:12px;align-items:center;
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(0, 212, 255, 0.05) 0%, transparent 20%),
+        radial-gradient(circle at 90% 80%, rgba(121, 40, 202, 0.05) 0%, transparent 20%);
     }
 
-    .card{
-      background:var(--card);
-      border-radius:12px;
-      padding:18px;
-      margin-top:12px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.02);
+    .ai-chat-container {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2rem;
     }
 
-    textarea#prompt{
-      width:100%;min-height:110px;padding:14px;border-radius:10px;border:1px solid #222;background:#0a0a0a;color:#fff;resize:vertical;font-size:15px;
+    .ai-header {
+      text-align: center;
     }
 
-    .row{display:flex;gap:12px;margin-top:12px;align-items:center}
-    button{cursor:pointer;border:none;padding:10px 14px;border-radius:10px;font-weight:700}
-    .btn-primary{background:linear-gradient(90deg,var(--gold),var(--red));color:#060606}
-    .btn-ghost{background:transparent;border:1px solid #222;color:var(--muted)}
+    .ai-header h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
 
-    #loading{display:none;color:var(--accent);font-weight:700;margin-left:8px}
+    .ai-header p {
+      font-size: 1.1rem;
+      color: var(--muted);
+    }
 
-    #responseHeader{display:flex;align-items:center;justify-content:space-between;gap:12px}
-    #aiName{font-weight:900;color:var(--gold);font-size:18px}
-    #result{margin-top:12px;padding:14px;border-radius:10px;background:#060606;min-height:90px;color:#ffd;white-space:pre-wrap;font-size:16px;line-height:1.45}
-    .meta{font-size:12px;color:var(--muted);margin-top:8px}
+    .chat-interface {
+      width: 100%;
+      background-color: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
 
-    .history{margin-top:14px;display:flex;flex-direction:column;gap:8px}
-    .hist-item{background:#080808;border:1px solid #1a1a1a;padding:10px;border-radius:8px;color:var(--muted);font-size:13px;display:flex;justify-content:space-between;align-items:center}
-    .small{font-size:12px;color:var(--muted)}
+    .messages-container {
+      height: 400px;
+      overflow-y: auto;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
 
-    .debug{margin-top:12px;margin-bottom:8px;display:none}
-    pre.debugbox{max-height:220px;overflow:auto;background:#020202;padding:10px;border-radius:8px;color:#aaa;font-size:13px}
+    .message {
+      display: flex;
+      gap: 1rem;
+      max-width: 100%;
+      animation: fadeIn 0.5s;
+    }
 
-    @media (max-width:640px){
-      header{flex-direction:column;align-items:flex-start;gap:8px}
-      .controls{width:100%;justify-content:space-between}
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message.user {
+      justify-content: flex-end;
+    }
+
+    .message-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.875rem;
+      flex-shrink: 0;
+    }
+
+    .message.user .message-avatar {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #000;
+    }
+
+    .message.ai .message-avatar {
+      background: linear-gradient(135deg, var(--secondary), var(--primary-dark));
+      color: white;
+    }
+
+    .message-content {
+      max-width: 80%;
+      padding: 0.75rem 1rem;
+      border-radius: 1rem;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    .message.user .message-content {
+      background: rgba(0, 212, 255, 0.1);
+      color: var(--text);
+      border-bottom-right-radius: 0.25rem;
+      border: 1px solid rgba(0, 212, 255, 0.2);
+    }
+
+    .message.ai .message-content {
+      background: rgba(121, 40, 202, 0.1);
+      color: var(--text);
+      border-bottom-left-radius: 0.25rem;
+      border: 1px solid rgba(121, 40, 202, 0.2);
+    }
+
+    .input-area {
+      border-top: 1px solid var(--border);
+      padding: 1rem;
+      background: rgba(10, 10, 15, 0.5);
+    }
+
+    .input-container {
+      display: flex;
+      align-items: flex-end;
+      gap: 0.5rem;
+      background-color: rgba(255, 255, 255, 0.05);
+      border-radius: 0.75rem;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+    }
+
+    .textarea-container {
+      flex: 1;
+      position: relative;
+    }
+
+    .chat-textarea {
+      width: 100%;
+      min-height: 60px;
+      max-height: 200px;
+      padding: 0.75rem;
+      background: transparent;
+      border: none;
+      resize: none;
+      color: var(--text);
+      font-size: 0.95rem;
+      line-height: 1.5;
+      outline: none;
+    }
+
+    .chat-textarea::placeholder {
+      color: var(--muted);
+    }
+
+    .send-button {
+      width: 40px;
+      height: 40px;
+      border-radius: 0.5rem;
+      border: none;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+      font-weight: bold;
+    }
+
+    .send-button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 5px 15px rgba(0, 212, 255, 0.3);
+    }
+
+    .send-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .action-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+
+    .action-button {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 2rem;
+      font-size: 0.875rem;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .action-button:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      border-color: var(--primary);
+    }
+
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--muted);
+      font-size: 0.875rem;
+      margin-top: 0.5rem;
+    }
+
+    .typing-dots {
+      display: flex;
+      gap: 0.25rem;
+    }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--primary);
+      animation: typing 1.4s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .typing-dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes typing {
+      0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.5;
+      }
+      30% {
+        transform: translateY(-5px);
+        opacity: 1;
+      }
+    }
+
+    .model-info {
+      text-align: center;
+      font-size: 0.875rem;
+      color: var(--muted);
+      margin-top: 0.5rem;
+    }
+
+    .debug-section {
+      margin-top: 1rem;
+      display: none;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 0.5rem;
+      padding: 1rem;
+    }
+
+    .debug-title {
+      color: var(--muted);
+      font-size: 0.875rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .debug-box {
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      max-height: 200px;
+      overflow: auto;
+      font-family: monospace;
+      font-size: 0.75rem;
+      color: #aaa;
+    }
+
+    .controls {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      justify-content: center;
+    }
+
+    .control-button {
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.875rem;
+    }
+
+    .control-button:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .control-button.primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #000;
+      font-weight: 600;
+    }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius:3px; }
+    ::-webkit-scrollbar-thumb { background: var(--primary); border-radius:3px; }
+
+    @media (max-width: 768px) {
+      .ai-header h1 { font-size: 2rem; }
+      .messages-container { height: 300px; padding: 1rem; }
+      .message-content { max-width: 90%; }
+      .action-button { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <div class="brand">
-        <div class="logo">MT</div>
-        <div>
-          <h1>Gorq IA — Interface</h1>
-          <p class="subtitle">Conectada a <strong>/api/gorq</strong>. Persona fixa definida pelo backend.</p>
+  <div class="ai-chat-container">
+    <div class="ai-header">
+      <h1>AI Assistant</h1>
+      <p>Converse com a IA integrada ao seu backend</p>
+    </div>
+
+    <div class="chat-interface">
+      <div class="messages-container" id="messagesContainer">
+        <div class="message ai">
+          <div class="message-avatar">AI</div>
+          <div class="message-content">
+            Olá! vou ser o assistente de IA do seu site. Como posso ajudá-lo hoje?
+          </div>
         </div>
       </div>
-
-      <div class="controls">
-        <button class="btn-ghost" id="btnClearHistory">Limpar histórico</button>
-        <button class="btn-primary" id="btnCopyLast" title="Copiar última resposta">Copiar</button>
-      </div>
-    </header>
-
-    <div class="card">
-      <label for="prompt"><small class="small">Prompt</small></label>
-      <textarea id="prompt">Escreva uma frase motivacional curta e poderosa.</textarea>
-
-      <div class="row">
-        <button class="btn-primary" id="sendBtn">Gerar Resposta</button>
-        <button class="btn-ghost" id="btnPreview">Ver raw</button>
-        <div id="loading">Gerando...</div>
-      </div>
-
-      <div id="responseHeader" style="margin-top:14px">
-        <div>
-          <div id="aiName">—</div>
-          <div class="meta" id="metaModel"></div>
+      
+      <div class="input-area">
+        <div class="input-container">
+          <div class="textarea-container">
+            <textarea 
+              class="chat-textarea" 
+              id="prompt" 
+              placeholder="Digite sua mensagem..."
+            >Escreva uma frase motivacional curta e poderosa.</textarea>
+          </div>
+          <button class="send-button" id="sendBtn" title="Enviar">
+            ↑
+          </button>
         </div>
+
+        <div class="controls">
+          <button class="control-button" id="btnCopyLast">Copiar última</button>
+          <button class="control-button" id="btnClearHistory">Limpar histórico</button>
+          <button class="control-button" id="btnPreview">Modo Debug</button>
+        </div>
+
+        <div class="debug-section" id="debugWrap">
+          <div class="debug-title">Resposta Bruta (Debug):</div>
+          <pre class="debug-box" id="rawBox"></pre>
+        </div>
+        
+        <div class="model-info" id="metaModel"></div>
       </div>
-
-      <div id="result">A resposta aparecerá aqui.</div>
-
-      <div class="debug" id="debugWrap">
-        <div class="meta">Raw response (debug):</div>
-        <pre class="debugbox" id="rawBox"></pre>
-      </div>
-
-      <div class="history" id="historyList" aria-live="polite"></div>
     </div>
   </div>
 
-<script>
-(() => {
-  const sendBtn = document.getElementById('sendBtn');
-  const promptEl = document.getElementById('prompt');
-  const resultEl = document.getElementById('result');
-  const aiNameEl = document.getElementById('aiName');
-  const loadingEl = document.getElementById('loading');
-  const rawBox = document.getElementById('rawBox');
-  const debugWrap = document.getElementById('debugWrap');
-  const btnPreview = document.getElementById('btnPreview');
-  const btnCopyLast = document.getElementById('btnCopyLast');
-  const btnClearHistory = document.getElementById('btnClearHistory');
-  const metaModel = document.getElementById('metaModel');
-  const historyList = document.getElementById('historyList');
+  <script>
+    (() => {
+      const sendBtn = document.getElementById('sendBtn');
+      const promptEl = document.getElementById('prompt');
+      const messagesContainer = document.getElementById('messagesContainer');
+      const rawBox = document.getElementById('rawBox');
+      const debugWrap = document.getElementById('debugWrap');
+      const btnPreview = document.getElementById('btnPreview');
+      const btnCopyLast = document.getElementById('btnCopyLast');
+      const btnClearHistory = document.getElementById('btnClearHistory');
+      const metaModel = document.getElementById('metaModel');
 
-  const STORAGE_KEY = 'gorq_history_v1';
-  function loadHistory(){ try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e){ return []; } }
-  function saveHistory(h){ localStorage.setItem(STORAGE_KEY, JSON.stringify(h)); renderHistory(); }
-  function renderHistory(){
-    const h = loadHistory();
-    historyList.innerHTML = '';
-    h.slice().reverse().forEach(item=>{
-      const div = document.createElement('div'); div.className='hist-item';
-      const left = document.createElement('div'); left.innerHTML = `<div style="font-weight:700;color:var(--gold)">${item.name}</div><div style="color:var(--muted)">${item.prompt}</div>`;
-      const right = document.createElement('div'); right.innerHTML = `<div style="text-align:right">${(new Date(item.time)).toLocaleString()}</div>`;
-      div.appendChild(left); div.appendChild(right);
-      historyList.appendChild(div);
-    });
-  }
+      const STORAGE_KEY = 'gorq_history_v1';
 
-  // copy last result
-  btnCopyLast.addEventListener('click', ()=> {
-    const text = resultEl.textContent || '';
-    if(!text) return alert('Nada para copiar');
-    navigator.clipboard.writeText(text).then(()=> alert('Copiado!'));
-  });
+      function loadHistory(){ 
+        try { 
+          return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); 
+        } catch(e){ return []; } 
+      }
+      function saveHistory(h){ localStorage.setItem(STORAGE_KEY, JSON.stringify(h)); }
 
-  // clear history
-  btnClearHistory.addEventListener('click', ()=> {
-    if(!confirm('Limpar histórico local?')) return;
-    localStorage.removeItem(STORAGE_KEY); renderHistory();
-  });
+      function addMessage(content, isUser = false, name = 'IA') {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isUser ? 'user' : 'ai'}`;
+        
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = 'message-avatar';
+        avatarDiv.textContent = isUser ? 'V' : 'AI';
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+        contentDiv.textContent = content;
+        
+        messageDiv.appendChild(avatarDiv);
+        messageDiv.appendChild(contentDiv);
+        messagesContainer.appendChild(messageDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+      
+      function showTypingIndicator() {
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'message ai';
+        typingDiv.id = 'typingIndicator';
+        
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = 'message-avatar';
+        avatarDiv.textContent = 'AI';
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+        contentDiv.innerHTML = `
+          <div class="typing-indicator">
+            Digitando
+            <div class="typing-dots">
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+            </div>
+          </div>
+        `;
+        
+        typingDiv.appendChild(avatarDiv);
+        typingDiv.appendChild(contentDiv);
+        messagesContainer.appendChild(typingDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+      
+      function hideTypingIndicator() {
+        const el = document.getElementById('typingIndicator');
+        if (el) el.remove();
+      }
 
-  // toggle raw preview
-  btnPreview.addEventListener('click', ()=> {
-    debugWrap.style.display = debugWrap.style.display === 'block' ? 'none' : 'block';
-  });
-
-  // initial render
-  renderHistory();
-
-  async function callApi(prompt){
-    // UI lock
-    sendBtn.disabled = true; loadingEl.style.display = 'inline-block';
-    try {
-      const res = await fetch('/api/gorq', {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json' },
-        body: JSON.stringify({ prompt })
+      btnCopyLast.addEventListener('click', () => {
+        const messages = messagesContainer.querySelectorAll('.message-content');
+        if (messages.length < 2) {
+          alert('Nada para copiar');
+          return;
+        }
+        const lastMessage = messages[messages.length - 1].textContent;
+        navigator.clipboard.writeText(lastMessage).then(()=> {
+          alert('Copiado!');
+        });
       });
 
-      const data = await res.json();
-      loadingEl.style.display = 'none'; sendBtn.disabled = false;
+      btnClearHistory.addEventListener('click', () => {
+        if (!confirm('Limpar histórico local?')) return;
+        localStorage.removeItem(STORAGE_KEY);
+        // remove todas exceto a primeira
+        while (messagesContainer.children.length > 1) messagesContainer.removeChild(messagesContainer.lastChild);
+      });
 
-      if(!res.ok){
-        resultEl.textContent = 'Erro: ' + (data.error || res.statusText);
-        rawBox.textContent = JSON.stringify(data, null, 2);
-        debugWrap.style.display = 'block';
-        return;
+      btnPreview.addEventListener('click', () => {
+        const isVisible = debugWrap.style.display === 'block';
+        debugWrap.style.display = isVisible ? 'none' : 'block';
+        btnPreview.textContent = isVisible ? 'Modo Debug' : 'Ocultar Debug';
+      });
+
+      async function callApi(prompt) {
+        sendBtn.disabled = true;
+        addMessage(prompt, true, 'Você');
+        showTypingIndicator();
+
+        try {
+          const res = await fetch('/api/gorq', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt })
+          });
+
+          const data = await res.json();
+          hideTypingIndicator();
+          sendBtn.disabled = false;
+
+          if (!res.ok) {
+            addMessage('Erro: ' + (data.error || res.statusText), false, 'Sistema');
+            rawBox.textContent = JSON.stringify(data, null, 2);
+            debugWrap.style.display = 'block';
+            return;
+          }
+
+          const name = data.name || 'IA';
+          const content = data.content || null;
+          const raw = data.raw || data;
+
+          metaModel.textContent = raw?.model ? 'Modelo: ' + raw.model : '';
+
+          if (content) {
+            addMessage(content, false, name);
+          } else {
+            addMessage('Sem conteúdo extraído — ative o modo debug para inspecionar.', false, 'Sistema');
+          }
+
+          rawBox.textContent = JSON.stringify(raw, null, 2);
+          debugWrap.style.display = 'none';
+
+          // Store history
+          const hist = loadHistory();
+          hist.push({ time: Date.now(), name, prompt, content: content || null });
+          if (hist.length > 50) hist.splice(0, hist.length - 50);
+          saveHistory(hist);
+
+        } catch (err) {
+          hideTypingIndicator();
+          sendBtn.disabled = false;
+          addMessage('Erro de rede: ' + err.message, false, 'Sistema');
+          rawBox.textContent = (err && err.stack) ? err.stack : String(err);
+          debugWrap.style.display = 'block';
+        }
       }
 
-      // expected shape: { name, content, raw }
-      const name = data.name || 'IA';
-      const content = data.content || null;
-      const raw = data.raw || data;
+      sendBtn.addEventListener('click', () => {
+        const text = promptEl.value.trim();
+        if (!text) { alert('Digite um prompt!'); return; }
+        callApi(text);
+        promptEl.value = '';
+      });
 
-      aiNameEl.textContent = name;
-      metaModel.textContent = raw?.model ? 'Modelo: ' + raw.model : '';
+      promptEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && e.ctrlKey) {
+          e.preventDefault();
+          sendBtn.click();
+        }
+      });
 
-      if(content){
-        resultEl.textContent = content;
-      } else {
-        // fallback: show user-friendly message and raw
-        resultEl.textContent = 'Sem conteúdo extraído — abra o raw para inspecionar.';
-      }
+      // auto-resize
+      promptEl.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+      });
 
-      rawBox.textContent = JSON.stringify(raw, null, 2);
-      debugWrap.style.display = 'none'; // hidden by default
-
-      // store history
-      const hist = loadHistory();
-      hist.push({ time: Date.now(), name, prompt, content: content || null });
-      // keep last 80
-      if(hist.length > 80) hist.splice(0, hist.length - 80);
-      saveHistory(hist);
-
-    } catch (err) {
-      loadingEl.style.display = 'none'; sendBtn.disabled = false;
-      resultEl.textContent = 'Erro de rede: ' + err.message;
-      rawBox.textContent = (err && err.stack) ? err.stack : String(err);
-      debugWrap.style.display = 'block';
-    }
-  }
-
-  sendBtn.addEventListener('click', ()=>{
-    const text = promptEl.value.trim();
-    if(!text) return alert('Digite um prompt!');
-    callApi(text);
-  });
-
-  // Allow Ctrl+Enter to send
-  promptEl.addEventListener('keydown', (e)=>{
-    if(e.ctrlKey && e.key === 'Enter') sendBtn.click();
-  });
-
-})();
-</script>
+    })();
+  </script>
 </body>
 </html>
