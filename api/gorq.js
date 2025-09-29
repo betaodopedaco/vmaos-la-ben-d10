@@ -1,7 +1,4 @@
-// api/gorq.js
-// Backend para Vercel (CommonJS) que aplica persona permanente
-// Suporta continuação automática se a resposta for truncada e retorna usage
-
+// api/gorq.js - VERSÃO CORRIGIDA
 const fetch = require('node-fetch');
 
 function parseFloatEnv(name, fallback) {
@@ -42,15 +39,26 @@ module.exports = async (req, res) => {
     const API_KEY = process.env.GROQ_API_KEY;
     if (!API_KEY) return res.status(500).json({ error: 'GROQ_API_KEY não configurada.' });
 
-    // Configs do ambiente (defaults ajustados)
-    const MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-20b';
-    const AI_NAME = process.env.AI_NAME || 'MAGNATUNS';
-    const AI_PERSONA = process.env.AI_PERSONA || `Você é ${AI_NAME}, uma IA que responde de forma clara e útil.`;
-    const TEMPERATURE = parseFloatEnv('AI_TEMPERATURE', 0.7);
-    const MAX_TOKENS = parseIntEnv('AI_MAX_TOKENS', 800); // default aumentado
-    const TOP_P = parseFloatEnv('AI_TOP_P', 1);
-    const PRESENCE_PENALTY = parseFloatEnv('AI_PRESENCE_PEN', 0);
-    const FREQUENCY_PENALTY = parseFloatEnv('AI_FREQUENCY_PEN', 0);
+    // 🔥 CONFIGURAÇÕES CORRIGIDAS
+    const MODEL = process.env.GROQ_MODEL || 'deepseek-r1-distill-llama-70b';
+    const AI_NAME = process.env.AI_NAME || 'ASSISTENTE';
+    const AI_PERSONA = process.env.AI_PERSONA || `Você é ${AI_NAME}, um assistente de IA útil e direto.
+
+REGRAS ESTRITAS DE RESPOSTA:
+1. SEMPRE responda de forma CONVERSACIONAL e NATURAL
+2. NUNCA use markdown, tabelas ou formatação complexa
+3. Seja CONCISO - máximo 3-4 frases para perguntas simples
+4. Use linguagem CLARA e ACESSÍVEL
+5. Quebre ideias complexas em partes simples
+6. Foque no que o usuário realmente precisa saber
+7. Evite listas longas, tabelas ou estruturas técnicas
+8. Responda como se estivesse em uma conversa real por chat`;
+
+    const TEMPERATURE = parseFloatEnv('AI_TEMPERATURE', 0.3);
+    const MAX_TOKENS = parseIntEnv('AI_MAX_TOKENS', 800);
+    const TOP_P = parseFloatEnv('AI_TOP_P', 0.9);
+    const PRESENCE_PENALTY = parseFloatEnv('AI_PRESENCE_PEN', 0.1);
+    const FREQUENCY_PENALTY = parseFloatEnv('AI_FREQUENCY_PEN', 0.1);
     const SAFE_MODE = parseBoolEnv('AI_SAFE_MODE', true);
     const MAX_CONTINUATIONS = parseIntEnv('AI_MAX_CONTINUATIONS', 3);
 
@@ -60,13 +68,7 @@ module.exports = async (req, res) => {
     if (!prompt) return res.status(400).json({ error: 'Prompt é obrigatório.' });
 
     // monta system message permanente
-    const systemMsg = `${AI_PERSONA}
-
-Regras:
-- Fale em pt-BR por padrão, a menos que instruído de outra forma no prompt.
-- Mantenha o tom solicitado pela persona enquanto for relevante.
-- Se o usuário pedir instruções ilegais ou perigosas, recuse educadamente.
-`;
+    const systemMsg = AI_PERSONA;
 
     const messages = [
       { role: 'system', content: systemMsg },
