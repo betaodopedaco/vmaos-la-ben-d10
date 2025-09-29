@@ -1,7 +1,6 @@
 // api/gorq.js
 // Backend para Vercel (CommonJS) que aplica persona permanente
-// Melhorias: maior default de max_tokens, continuação automática se truncado,
-// e inclusão de usage no retorno.
+// Suporta continuação automática se a resposta for truncada e retorna usage
 
 const fetch = require('node-fetch');
 
@@ -32,7 +31,7 @@ async function callGroq(payload, apiKey) {
 }
 
 module.exports = async (req, res) => {
-  // simples CORS para testes (producão: restrinja ao seu domínio)
+  // CORS simples para testes
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -46,14 +45,14 @@ module.exports = async (req, res) => {
     // Configs do ambiente (defaults ajustados)
     const MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-20b';
     const AI_NAME = process.env.AI_NAME || 'MAGNATUNS';
-    const AI_PERSONA = process.env.AI_PERSONA || `Você é ${AI_NAME}, uma IA que fala com grandiosidade e honra. Responda sempre de forma épica e inspiradora.`;
+    const AI_PERSONA = process.env.AI_PERSONA || `Você é ${AI_NAME}, uma IA que responde de forma clara e útil.`;
     const TEMPERATURE = parseFloatEnv('AI_TEMPERATURE', 0.7);
-    const MAX_TOKENS = parseIntEnv('AI_MAX_TOKENS', 800); // <<< aumentei para 800 por padrão
+    const MAX_TOKENS = parseIntEnv('AI_MAX_TOKENS', 800); // default aumentado
     const TOP_P = parseFloatEnv('AI_TOP_P', 1);
     const PRESENCE_PENALTY = parseFloatEnv('AI_PRESENCE_PEN', 0);
     const FREQUENCY_PENALTY = parseFloatEnv('AI_FREQUENCY_PEN', 0);
     const SAFE_MODE = parseBoolEnv('AI_SAFE_MODE', true);
-    const MAX_CONTINUATIONS = 3; // quantas vezes tentar continuar se truncado
+    const MAX_CONTINUATIONS = parseIntEnv('AI_MAX_CONTINUATIONS', 3);
 
     // parse do body
     const body = (req.body && typeof req.body === 'object') ? req.body : (req.body ? JSON.parse(req.body) : {});
@@ -74,7 +73,6 @@ Regras:
       { role: 'user', content: prompt }
     ];
 
-    // payload inicial
     const payload = {
       model: MODEL,
       messages,
@@ -92,31 +90,28 @@ Regras:
     let dataResp = first.data;
     console.log('Status:', first.status);
 
-    // extrai conteúdo
-    let content = null;
+    // extrai conteúdo inicial
+    let content = '';
     if (Array.isArray(dataResp?.choices) && dataResp.choices[0]?.message?.content) {
       content = dataResp.choices[0].message.content;
     } else if (Array.isArray(dataResp?.choices) && dataResp.choices[0]?.text) {
       content = dataResp.choices[0].text;
     } else if (dataResp?.message?.content) {
       content = dataResp.message.content;
-    } else {
-      content = '';
     }
 
     // acumula usage (se disponível)
     let totalUsage = (dataResp?.usage && dataResp.usage.total_tokens) ? dataResp.usage.total_tokens : 0;
 
-    // detecta se truncou por limite (finish_reason === 'length')
+    // detecta finish_reason
     let finishReason = dataResp?.choices?.[0]?.finish_reason || null;
     console.log('finish_reason (primeira):', finishReason);
 
-    // 2) se truncou, tenta continuar (até MAX_CONTINUATIONS)
+    // tenta continuar se truncado
     const continuations = [];
     let attempts = 0;
-    while (finishReason === 'length' && attempts < MAX_CONTINUATIONS) {
+    while (finishReason === 'length' && attempts < (isNaN(MAX_CONTINUATIONS) ? 3 : MAX_CONTINUATIONS)) {
       attempts++;
-      // montar mensagens para continuar: inclui assistant truncated content e pede "continue"
       const contMessages = [
         { role: 'system', content: systemMsg },
         { role: 'user', content: prompt },
@@ -143,16 +138,15 @@ Regras:
                   : (Array.isArray(d2?.choices) && d2.choices[0]?.text) ? d2.choices[0].text
                   : (d2?.message?.content) ? d2.message.content : '';
 
-      // concatena
+      // concatena com separador (uma nova linha)
       content = (content || '') + '\n' + extra;
 
-      // acumula usage
       if (d2?.usage?.total_tokens) totalUsage += d2.usage.total_tokens;
 
-      // atualizar finishReason a partir da continuação
       finishReason = d2?.choices?.[0]?.finish_reason || null;
       console.log('finish_reason (continuação #' + attempts + '):', finishReason);
-      // se a continuação ainda vier truncada, loopa até limite
+
+      // se continuar vindo 'length', o loop ocorrerá até MAX_CONTINUATIONS
     }
 
     // safe-mode simples: remove palavras proibidas (exemplo)
@@ -164,7 +158,7 @@ Regras:
       });
     }
 
-    // resposta final com usage e info de continuação
+    // Resposta final
     return res.status(200).json({
       name: AI_NAME,
       content,
