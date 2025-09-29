@@ -1,33 +1,10 @@
-// api/gorq.js - VERSÃO FINAL CORRIGIDA
+// api/gorq.js - COM MODELO GEMMA2
 const fetch = require('node-fetch');
 
 // 🔥 FUNÇÃO PARA LIMPAR CHAVES DE API
 function cleanApiKey(key) {
   if (!key) return key;
   return key.toString().trim().replace(/\s+/g, '').replace(/\n/g, '');
-}
-
-// 🔥 FUNÇÃO PARA REMOVER TAGS <think>
-function removeThinkTags(content) {
-  if (typeof content !== 'string') return content;
-  
-  console.log('Conteúdo original:', content.substring(0, 200));
-  
-  // Remove todo o conteúdo entre <think> e </think>
-  let cleaned = content.replace(/<think>[\s\S]*?<\/think>/g, '');
-  
-  // Remove <think> sem tag de fechamento
-  cleaned = cleaned.replace(/<think>[\s\S]*$/g, '');
-  
-  // Remove outras possíveis tags de reasoning
-  cleaned = cleaned.replace(/<reasoning>[\s\S]*?<\/reasoning>/g, '');
-  cleaned = cleaned.replace(/<reasoning>[\s\S]*$/g, '');
-  
-  cleaned = cleaned.trim();
-  
-  console.log('Conteúdo limpo:', cleaned.substring(0, 200));
-  
-  return cleaned || content;
 }
 
 function parseFloatEnv(name, fallback) {
@@ -67,39 +44,30 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    // 🔥 CHAVE LIMPA - CORREÇÃO DO ERRO
+    // 🔥 CHAVE LIMPA
     const API_KEY = cleanApiKey(process.env.GROQ_API_KEY);
     if (!API_KEY) return res.status(500).json({ error: 'GROQ_API_KEY não configurada.' });
 
-    // Configurações otimizadas
-    const MODEL = process.env.GROQ_MODEL || 'deepseek-r1-distill-llama-70b';
+    // 🔥🔥🔥 MODELO GEMMA2 - QUE VOCÊ JÁ TESTOU E FUNCIONOU!
+    const MODEL = process.env.GROQ_MODEL || 'gemma2-9b-it';
     const AI_NAME = process.env.AI_NAME || 'ASSISTENTE';
     const AI_PERSONA = process.env.AI_PERSONA || `Você é ${AI_NAME}, um assistente de IA útil e direto.
 
-**REGRAS ABSOLUTAS DE RESPOSTA:**
-1. NUNCA mostre seu processo de pensamento interno
-2. NUNCA use tags como <think>, <reasoning> ou similares
-3. SEMPRE responda de forma CONVERSACIONAL e NATURAL
-4. NUNCA use markdown, tabelas ou formatação complexa
-5. Seja CONCISO - máximo 3-4 frases para perguntas simples
-6. Use linguagem CLARA e ACESSÍVEL
-7. Foque no que o usuário realmente precisa saber
-8. Responda como se estivesse em uma conversa real por chat
-
-EXEMPLO DE RESPOSTA CORRETA:
-Usuário: "Escreva uma frase motivacional"
-Resposta: "Cada desafio é uma oportunidade para crescer e se superar."
-
-EXEMPLO DE RESPOSTA ERRADA:
-"<think> O usuário pediu uma frase motivacional... </think> Cada desafio é..."`;
+REGRAS ABSOLUTAS:
+1. Responda de forma CONVERSACIONAL e NATURAL
+2. NUNCA use markdown, tabelas ou formatação complexa
+3. Seja CONCISO - máximo 3-4 frases para perguntas simples
+4. Use linguagem CLARA e ACESSÍVEL
+5. Foque no que o usuário realmente precisa saber
+6. Responda como em uma conversa normal por chat`;
 
     const TEMPERATURE = parseFloatEnv('AI_TEMPERATURE', 0.3);
-    const MAX_TOKENS = parseIntEnv('AI_MAX_TOKENS', 800);
+    const MAX_TOKENS = parseIntEnv('AI_MAX_TOKENS', 600);
     const TOP_P = parseFloatEnv('AI_TOP_P', 0.9);
     const PRESENCE_PENALTY = parseFloatEnv('AI_PRESENCE_PEN', 0.1);
     const FREQUENCY_PENALTY = parseFloatEnv('AI_FREQUENCY_PEN', 0.1);
     const SAFE_MODE = parseBoolEnv('AI_SAFE_MODE', true);
-    const MAX_CONTINUATIONS = parseIntEnv('AI_MAX_CONTINUATIONS', 3);
+    const MAX_CONTINUATIONS = parseIntEnv('AI_MAX_CONTINUATIONS', 2);
 
     // parse do body
     const body = (req.body && typeof req.body === 'object') ? req.body : (req.body ? JSON.parse(req.body) : {});
@@ -141,11 +109,6 @@ EXEMPLO DE RESPOSTA ERRADA:
       content = dataResp.message.content;
     }
 
-    // 🔥 FILTRA O CONTEÚDO INTERNO DA IA
-    if (typeof content === 'string') {
-      content = removeThinkTags(content);
-    }
-
     // acumula usage (se disponível)
     let totalUsage = (dataResp?.usage && dataResp.usage.total_tokens) ? dataResp.usage.total_tokens : 0;
 
@@ -156,13 +119,13 @@ EXEMPLO DE RESPOSTA ERRADA:
     // tenta continuar se truncado
     const continuations = [];
     let attempts = 0;
-    while (finishReason === 'length' && attempts < (isNaN(MAX_CONTINUATIONS) ? 3 : MAX_CONTINUATIONS)) {
+    while (finishReason === 'length' && attempts < (isNaN(MAX_CONTINUATIONS) ? 2 : MAX_CONTINUATIONS)) {
       attempts++;
       const contMessages = [
         { role: 'system', content: systemMsg },
         { role: 'user', content: prompt },
         { role: 'assistant', content: content },
-        { role: 'user', content: 'Continue a resposta anterior, finalizando o texto onde parou. Mantenha o mesmo tom.' }
+        { role: 'user', content: 'Continue.' }
       ];
 
       const payloadCont = {
@@ -175,26 +138,16 @@ EXEMPLO DE RESPOSTA ERRADA:
         frequency_penalty: FREQUENCY_PENALTY
       };
 
-      console.log('Chamando continuação #' + attempts + ' — max_tokens:', MAX_TOKENS);
+      console.log('Chamando continuação #' + attempts);
       const contResp = await callGroq(payloadCont, API_KEY);
       const d2 = contResp.data;
       continuations.push(d2);
 
-      let extra = '';
-      if (Array.isArray(d2?.choices) && d2.choices[0]?.message?.content) {
-        extra = d2.choices[0].message.content;
-      } else if (Array.isArray(d2?.choices) && d2.choices[0]?.text) {
-        extra = d2.choices[0].text;
-      } else if (d2?.message?.content) {
-        extra = d2.message.content;
-      }
+      const extra = (Array.isArray(d2?.choices) && d2.choices[0]?.message?.content) ? d2.choices[0].message.content
+                  : (Array.isArray(d2?.choices) && d2.choices[0]?.text) ? d2.choices[0].text
+                  : (d2?.message?.content) ? d2.message.content : '';
 
-      // 🔥 FILTRA O CONTEÚDO INTERNO TAMBÉM NAS CONTINUAÇÕES
-      if (typeof extra === 'string') {
-        extra = removeThinkTags(extra);
-      }
-
-      // concatena com separador (uma nova linha)
+      // concatena
       content = (content || '') + '\n' + extra;
 
       if (d2?.usage?.total_tokens) totalUsage += d2.usage.total_tokens;
