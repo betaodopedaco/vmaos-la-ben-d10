@@ -1,14 +1,45 @@
-// api/gorq.js - VERSÃO CORRIGIDA
+// api/gorq.js - VERSÃO FINAL CORRIGIDA
 const fetch = require('node-fetch');
+
+// 🔥 FUNÇÃO PARA LIMPAR CHAVES DE API
+function cleanApiKey(key) {
+  if (!key) return key;
+  return key.toString().trim().replace(/\s+/g, '').replace(/\n/g, '');
+}
+
+// 🔥 FUNÇÃO PARA REMOVER TAGS <think>
+function removeThinkTags(content) {
+  if (typeof content !== 'string') return content;
+  
+  console.log('Conteúdo original:', content.substring(0, 200));
+  
+  // Remove todo o conteúdo entre <think> e </think>
+  let cleaned = content.replace(/<think>[\s\S]*?<\/think>/g, '');
+  
+  // Remove <think> sem tag de fechamento
+  cleaned = cleaned.replace(/<think>[\s\S]*$/g, '');
+  
+  // Remove outras possíveis tags de reasoning
+  cleaned = cleaned.replace(/<reasoning>[\s\S]*?<\/reasoning>/g, '');
+  cleaned = cleaned.replace(/<reasoning>[\s\S]*$/g, '');
+  
+  cleaned = cleaned.trim();
+  
+  console.log('Conteúdo limpo:', cleaned.substring(0, 200));
+  
+  return cleaned || content;
+}
 
 function parseFloatEnv(name, fallback) {
   const v = process.env[name];
   return v !== undefined ? parseFloat(v) : fallback;
 }
+
 function parseIntEnv(name, fallback) {
   const v = process.env[name];
   return v !== undefined ? parseInt(v, 10) : fallback;
 }
+
 function parseBoolEnv(name, fallback) {
   const v = process.env[name];
   return v !== undefined ? (v === 'true' || v === '1') : fallback;
@@ -36,23 +67,31 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    const API_KEY = process.env.GROQ_API_KEY;
+    // 🔥 CHAVE LIMPA - CORREÇÃO DO ERRO
+    const API_KEY = cleanApiKey(process.env.GROQ_API_KEY);
     if (!API_KEY) return res.status(500).json({ error: 'GROQ_API_KEY não configurada.' });
 
-    // 🔥 CONFIGURAÇÕES CORRIGIDAS
+    // Configurações otimizadas
     const MODEL = process.env.GROQ_MODEL || 'deepseek-r1-distill-llama-70b';
     const AI_NAME = process.env.AI_NAME || 'ASSISTENTE';
     const AI_PERSONA = process.env.AI_PERSONA || `Você é ${AI_NAME}, um assistente de IA útil e direto.
 
-REGRAS ESTRITAS DE RESPOSTA:
-1. SEMPRE responda de forma CONVERSACIONAL e NATURAL
-2. NUNCA use markdown, tabelas ou formatação complexa
-3. Seja CONCISO - máximo 3-4 frases para perguntas simples
-4. Use linguagem CLARA e ACESSÍVEL
-5. Quebre ideias complexas em partes simples
-6. Foque no que o usuário realmente precisa saber
-7. Evite listas longas, tabelas ou estruturas técnicas
-8. Responda como se estivesse em uma conversa real por chat`;
+**REGRAS ABSOLUTAS DE RESPOSTA:**
+1. NUNCA mostre seu processo de pensamento interno
+2. NUNCA use tags como <think>, <reasoning> ou similares
+3. SEMPRE responda de forma CONVERSACIONAL e NATURAL
+4. NUNCA use markdown, tabelas ou formatação complexa
+5. Seja CONCISO - máximo 3-4 frases para perguntas simples
+6. Use linguagem CLARA e ACESSÍVEL
+7. Foque no que o usuário realmente precisa saber
+8. Responda como se estivesse em uma conversa real por chat
+
+EXEMPLO DE RESPOSTA CORRETA:
+Usuário: "Escreva uma frase motivacional"
+Resposta: "Cada desafio é uma oportunidade para crescer e se superar."
+
+EXEMPLO DE RESPOSTA ERRADA:
+"<think> O usuário pediu uma frase motivacional... </think> Cada desafio é..."`;
 
     const TEMPERATURE = parseFloatEnv('AI_TEMPERATURE', 0.3);
     const MAX_TOKENS = parseIntEnv('AI_MAX_TOKENS', 800);
@@ -102,6 +141,11 @@ REGRAS ESTRITAS DE RESPOSTA:
       content = dataResp.message.content;
     }
 
+    // 🔥 FILTRA O CONTEÚDO INTERNO DA IA
+    if (typeof content === 'string') {
+      content = removeThinkTags(content);
+    }
+
     // acumula usage (se disponível)
     let totalUsage = (dataResp?.usage && dataResp.usage.total_tokens) ? dataResp.usage.total_tokens : 0;
 
@@ -136,9 +180,19 @@ REGRAS ESTRITAS DE RESPOSTA:
       const d2 = contResp.data;
       continuations.push(d2);
 
-      const extra = (Array.isArray(d2?.choices) && d2.choices[0]?.message?.content) ? d2.choices[0].message.content
-                  : (Array.isArray(d2?.choices) && d2.choices[0]?.text) ? d2.choices[0].text
-                  : (d2?.message?.content) ? d2.message.content : '';
+      let extra = '';
+      if (Array.isArray(d2?.choices) && d2.choices[0]?.message?.content) {
+        extra = d2.choices[0].message.content;
+      } else if (Array.isArray(d2?.choices) && d2.choices[0]?.text) {
+        extra = d2.choices[0].text;
+      } else if (d2?.message?.content) {
+        extra = d2.message.content;
+      }
+
+      // 🔥 FILTRA O CONTEÚDO INTERNO TAMBÉM NAS CONTINUAÇÕES
+      if (typeof extra === 'string') {
+        extra = removeThinkTags(extra);
+      }
 
       // concatena com separador (uma nova linha)
       content = (content || '') + '\n' + extra;
@@ -147,11 +201,9 @@ REGRAS ESTRITAS DE RESPOSTA:
 
       finishReason = d2?.choices?.[0]?.finish_reason || null;
       console.log('finish_reason (continuação #' + attempts + '):', finishReason);
-
-      // se continuar vindo 'length', o loop ocorrerá até MAX_CONTINUATIONS
     }
 
-    // safe-mode simples: remove palavras proibidas (exemplo)
+    // safe-mode simples
     if (SAFE_MODE && typeof content === 'string') {
       const banned = ['instruções ilegais', 'bomba', 'como fabricar'];
       banned.forEach(w => {
