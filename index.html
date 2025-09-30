@@ -862,7 +862,7 @@
           const content = data.content || 'Sem resposta da IA';
           const raw = data.raw || data;
 
-          metaModel.textContent = raw?.model ? 'Modelo: ' + raw.model : 'gemma2-9b-it';
+          metaModel.textContent = raw?.model ? 'Modelo: ' + raw.model : '';
 
           addMessage(content, false, name);
 
