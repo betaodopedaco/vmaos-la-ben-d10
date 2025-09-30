@@ -633,7 +633,6 @@
           const particle = document.createElement('div');
           particle.classList.add('particle');
           
-          // Tamanho e posição aleatórios
           const size = Math.random() * 100 + 50;
           const left = Math.random() * 100;
           const top = Math.random() * 100;
@@ -668,6 +667,7 @@
           return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); 
         } catch(e){ return []; } 
       }
+      
       function saveHistory(h){ localStorage.setItem(STORAGE_KEY, JSON.stringify(h)); }
 
       function addMessage(content, isUser = false, name = 'IA') {
@@ -730,14 +730,17 @@
         const lastMessage = messages[messages.length - 1].textContent;
         navigator.clipboard.writeText(lastMessage).then(()=> {
           alert('Copiado!');
+        }).catch(() => {
+          alert('Erro ao copiar');
         });
       });
 
       btnClearHistory.addEventListener('click', () => {
         if (!confirm('Limpar histórico local?')) return;
         localStorage.removeItem(STORAGE_KEY);
-        // remove todas exceto a primeira
-        while (messagesContainer.children.length > 1) messagesContainer.removeChild(messagesContainer.lastChild);
+        while (messagesContainer.children.length > 1) {
+          messagesContainer.removeChild(messagesContainer.lastChild);
+        }
       });
 
       btnPreview.addEventListener('click', () => {
@@ -746,15 +749,26 @@
         btnPreview.textContent = isVisible ? 'Modo Debug' : 'Ocultar Debug';
       });
 
+      // 🔥 FUNÇÃO PRINCIPAL CORRIGIDA
       async function callApi(prompt) {
         sendBtn.disabled = true;
         addMessage(prompt, true, 'Você');
         showTypingIndicator();
 
         try {
-          const res = await fetch('/api/gorq', {
+          // 🔥 ENDPOINT CORRETO - usando o caminho absoluto
+          const API_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:3000/api/gorq'
+            : '/api/gorq';
+
+          console.log('Enviando para:', API_URL);
+          
+          const res = await fetch(API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
             body: JSON.stringify({ prompt })
           });
 
@@ -763,61 +777,82 @@
           sendBtn.disabled = false;
 
           if (!res.ok) {
-            addMessage('Erro: ' + (data.error || res.statusText), false, 'Sistema');
+            let errorMsg = data.error || 'Erro desconhecido';
+            if (data.details) {
+              errorMsg += ` - ${data.details}`;
+            }
+            addMessage(`Erro: ${errorMsg}`, false, 'Sistema');
             rawBox.textContent = JSON.stringify(data, null, 2);
             debugWrap.style.display = 'block';
             return;
           }
 
           const name = data.name || 'IA';
-          const content = data.content || null;
+          const content = data.content || 'Sem resposta da IA';
           const raw = data.raw || data;
 
-          metaModel.textContent = raw?.model ? 'Modelo: ' + raw.model : '';
+          metaModel.textContent = raw?.model ? 'Modelo: ' + raw.model : 'gemma2-9b-it';
 
-          if (content) {
-            addMessage(content, false, name);
-          } else {
-            addMessage('Sem conteúdo extraído — ative o modo debug para inspecionar.', false, 'Sistema');
-          }
+          // 🔥 ADICIONA A RESPOSTA DA IA
+          addMessage(content, false, name);
 
           rawBox.textContent = JSON.stringify(raw, null, 2);
           debugWrap.style.display = 'none';
 
-          // Store history
+          // Salva no histórico
           const hist = loadHistory();
-          hist.push({ time: Date.now(), name, prompt, content: content || null });
+          hist.push({ 
+            time: Date.now(), 
+            name, 
+            prompt, 
+            content: content 
+          });
           if (hist.length > 50) hist.splice(0, hist.length - 50);
           saveHistory(hist);
 
         } catch (err) {
           hideTypingIndicator();
           sendBtn.disabled = false;
-          addMessage('Erro de rede: ' + err.message, false, 'Sistema');
-          rawBox.textContent = (err && err.stack) ? err.stack : String(err);
+          const errorMsg = err.message || 'Erro de conexão';
+          addMessage(`Erro de rede: ${errorMsg}`, false, 'Sistema');
+          rawBox.textContent = err.stack || String(err);
           debugWrap.style.display = 'block';
+          console.error('Erro na chamada da API:', err);
         }
       }
 
       sendBtn.addEventListener('click', () => {
         const text = promptEl.value.trim();
-        if (!text) { alert('Digite um prompt!'); return; }
+        if (!text) { 
+          alert('Digite um prompt!'); 
+          return; 
+        }
         callApi(text);
         promptEl.value = '';
+        promptEl.style.height = 'auto';
       });
 
       promptEl.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && e.ctrlKey) {
+        if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
           sendBtn.click();
         }
       });
 
-      // auto-resize
+      // Auto-resize do textarea
       promptEl.addEventListener('input', function() {
         this.style.height = 'auto';
         this.style.height = (this.scrollHeight) + 'px';
       });
+
+      // Carrega histórico ao iniciar
+      const history = loadHistory();
+      if (history.length > 0) {
+        history.forEach(item => {
+          if (item.prompt) addMessage(item.prompt, true, 'Você');
+          if (item.content) addMessage(item.content, false, item.name);
+        });
+      }
 
     })();
   </script>
